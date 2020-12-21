@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="section">
+    <div class="container block has-text-centered">
+        <h2 class="title is-4">Wake up an SRE</h2>
+        <p class="subtitle narrow container">If you are confident there's a widespread outage or other emergency, and that it
+            isn't known to us already, you should page us.</p>
+    </div>
+    <div class="container block is-max-desktop">
+        <form action="submit_page" method="POST">
+            <div class="field">
+                <label class="label">You are logged in as: </label>
+                <div class="control">
+                    <input class="input" type="text" value="{{ username }}" readonly>
+                </div>
+                <p class="help">
+                    Your username will be included.
+                </p>
+            </div>
+
+            <div class="field">
+                <label class="label">Summary:</label>
+                <div class="control">
+                    <input name="summary" class="input" type="text" placeholder="Brief summary of what's wrong">
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label">Message:</label>
+                <div class="control">
+                    <textarea class="textarea" name="description"
+                        placeholder="Description of the emergency situation, and how to contact you"></textarea>
+                </div>
+                <div class="help">
+                    Please be as detailed as reasonably possible, and include how to best get in touch with you. Do
+                    <strong>not</strong> include any confidential information (e.g. user data).
+                </div>
+            </div>
+
+            <div class="field is-grouped">
+                <div class="control">
+                    <button class="button is-link is-danger"
+                        onclick="this.classList.add('is-loading');">Send</button>
+                </div>
+                <div class="control">
+                    <a href="/" class="button is-link is-light">Cancel</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}

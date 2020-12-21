@@ -1,0 +1,29 @@
+{% for incident in incidents %}
+<article class="media{% if loop.index0 == 0 %} mt-2{% endif %}">
+    <figure class="media-left">
+        <p>
+            {% if incident.acked %}
+            <span class="icon is-large" title="Acknowledged page">✅</span>
+            {% else %}
+            <span class="icon is-large" title="Not yet acknowledged">⚠️</span>
+            {% endif %}
+        </p>
+    </figure>
+    <div class="media-content">
+        <div class="content">
+            <div class="has-text-weight-semibold">{{ incident.summary }}</div>
+            {% if incident.acked %}
+            Acknowledged page
+            {% else %}
+            Unacknowledged page
+            {% endif %}
+            &nbsp;<br class="is-hidden-tablet">
+            <small><relative-time datetime="{{ incident.time }}Z">{{ incident.time }} UTC</relative-time></small>
+        </div>
+    </div>
+</article>
+{% else %}
+<div class="has-text-centered mt-4 mb-2">
+    No recent alerts!  Smooth sailing ⛵
+</div>
+{% endfor %}

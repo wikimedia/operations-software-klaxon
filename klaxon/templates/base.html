@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>WMF SRE Emergency Button</title>
+        <!-- Nice embeds on Slack/Discord/Twitter. -->
+        <meta name="twitter:card" content="summary">
+        <meta name="twitter:title" content="WMF SRE Emergency Contact">
+        <meta name="twitter:description" content="WMF staff and other trusted individuals can page SRE in the event of an emergency.">
+
+        <!-- TODO add Slack embed meta tags (Twitter card) -->
+
+        <link rel="stylesheet" href="{{ url_for('static', filename='bulma.min.v0.9.1.css') }}">
+        <style>
+            .narrow {
+                max-width: 30rem !important;
+            }
+            .panel-block {
+                word-break: break-word; /* Fixes iPhone SE-sized screens. https://github.com/jgthms/bulma/pull/1641 */
+            }
+        </style>
+    </head>
+
+    <body>
+        <header class="container is-max-desktop">
+            <nav class="level is-mobile pt-1 mx-2">
+                <div class="level-left">
+                    <div class="level-item">
+                        <a href="/">
+                            <img style="height: 5em;"
+                                src="https://upload.wikimedia.org/wikipedia/commons/3/31/Wikimedia_Foundation_logo_-_vertical.svg">
+                        </a>
+                    </div>
+                </div>
+                {% if topright_button %}
+                <div class="level-right">
+                    <div class="level-item">
+                        <a class="button is-primary is-danger" href="/protected/page_form">
+                            <strong>Wake up an SRE</strong>
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </nav>
+            <div class="container has-text-centered">
+                <h1 class="title">
+                    📟 SRE Emergency Contact
+                </h1>
+            </div>
+        </header>
+
+        {% block content %}{% endblock %}
+
+        <footer class="footer">
+            <div class="content has-text-centered">
+                <p class="is-size-7">
+                    <a href="https://wikimediafoundation.org/"><img style="height: 5em;"
+                            src="https://upload.wikimedia.org/wikipedia/commons/3/31/Wikimedia_Foundation_logo_-_vertical.svg"
+                            alt="Wikimedia Foundation logo">
+                    </a>
+                    <br>
+                    This app is <strong>Klaxon</strong> by <a href="https://meta.wikimedia.org/wiki/User:_CDanis_(WMF)">CDanis (WMF)</a>.
+                    <br>
+                    <a href="{{ repository }}">Source code</a> is available under the <a
+                        href="https://www.gnu.org/licenses/agpl-3.0.html">GNU AGPL</a>.
+                </p>
+            </div>
+        </footer>
+
+        {% block coda %}{% endblock %}
+    </body>
+</html>

@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% set topright_button = True %}
+
+{% block content %}
+<section class="section is-max-desktop">
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="narrow container has-text-weight-bold">
+            {% for message in messages %}
+                <div class="notification is-success mb-5">
+                    <button class="delete" onclick="this.parentElement.style.display='none';"></button>
+                    {{ message }}
+                </div>
+            {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+    <div class="container is-max-desktop has-text-centered block">
+        <p>
+            Below is a list of <strong>recent alerts</strong>. If there's something listed here, SRE has already
+            been paged (in which case, please don't page us again unless you're sure you're reporting a new issue).
+        </p>
+    </div>
+
+    <nav class="panel container is-max-desktop">
+        <div class="panel-heading">
+            <nav class="level is-mobile">
+                <div class="level-left">
+                    <div class="level-item">Recent alerts</div>
+                </div>
+                <div class="level-right">
+                    <div class="level-item">
+                        <span class="icon is-large is-clickable" onclick="fetchIncidents();">🔄</span>
+                    </div>
+                </div>
+        </div>
+        <div class="panel-block">
+            <div class="container mb-2" id="incident_list">
+                <div class="has-text-centered">
+                    JavaScript disabled in your browser...?
+                </div>
+            </div>
+        </div>
+    </nav>
+    </div>
+</section>
+<section class="section has-text-centered">
+    <h2 class="title is-4">I need help!</h2>
+    <div class="container block">
+        <div class="control">
+            <a class="button is-primary is-danger" href="/protected/page_form">
+                <strong>Wake up an SRE</strong>
+            </a>
+        </div>
+        <p class="help narrow container">If you are confident there's a widespread outage or other emergency (e.g. your
+            account was compromised), and that it isn't known to us already, you can page us. Paging is restricted to
+            WMF staff and other trusted individuals, as it can wake up engineers who are asleep.</p>
+    </div>
+    <div class="container block">
+        <div class="control">
+            <a href="https://phabricator.wikimedia.org/maniphest/task/edit/form/1/?tags=Operations"
+                class="button is-primary">
+                <strong>File a task on Phabricator</strong>
+            </a>
+        </div>
+        <p class="help narrow container">Open an Operations ticket for issues that aren't emergencies &amp; can be handled
+            during business hours. Requires a Phabricator account or Wikimedia developer login.</p>
+    </div>
+    <div class="container block">
+        <div class="control">
+            <a href="https://webchat.freenode.net/?channels=#wikimedia-sre" class="button is-info">
+                <strong>Chat with us</strong>
+            </a>
+        </div>
+        <p class="help narrow container">Real-time text chat via IRC.</p>
+    </div>
+</section>
+<script type="module" src="{{ url_for('static', filename='github.time-elements.v3.1.1.js') }}" integrity="sha384-xLlXob7FVjDIdjATAzHON8P8ADRd7DkLwOH9PoeXwBgek3eD0Z6iSmewMLZnUFV+"></script>
+{% endblock %}
+
+
+{% block coda %}
+<script>
+    function handleErrors(response) {
+        if (!response.ok) {
+            throw Error(response.statusText);
+        }
+        return response;
+    }
+    function showError(error) {
+        console.log(error);
+        document.getElementById('incident_list').innerHTML = `
+            <div class="notification is-danger is-light">
+                <strong>Error while fetching recent alerts :(</strong><br>
+                ${error}
+            </div>
+        `;
+    }
+    function fetchIncidents() {
+        document.getElementById('incident_list').innerHTML = `
+            <progress class="progress is-primary mt-2"></progress>
+        `;
+        fetch('/recent_incidents')
+            .then(handleErrors)
+            .then(function (response) {
+                response.text().then(function (text) {
+                    document.getElementById('incident_list').innerHTML = text;
+                });
+            }).catch(error => showError(error));;
+    }
+    fetchIncidents();
+</script>
+{% endblock %}
