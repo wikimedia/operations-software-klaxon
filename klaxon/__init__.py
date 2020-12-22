@@ -86,7 +86,7 @@ def create_app():
         """From request context, returns the logged-in user or 'unknown' (for local testing)"""
         header = app.config['KLAXON_CAS_AUTH_HEADER']
         if app.config['ENV'] == 'production' and header not in request.headers:
-            raise werkzeug.exceptions.Forbidden()
+            raise werkzeug.exceptions.Forbidden
         return request.headers.get(header, default='unknown')
 
     @app.route('/')
@@ -107,6 +107,7 @@ def create_app():
     @app.route('/protected/submit_page', methods=['POST'])
     def submit_page():
         form = request.form
+        # TODO: validate that required fields in the form were included.
         summary = form['summary']
         vo.send_page(summary=f"Manual page by {get_username()}: {summary}",
                      description=form['description'])

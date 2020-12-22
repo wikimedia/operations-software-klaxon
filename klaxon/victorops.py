@@ -27,6 +27,7 @@ class VictorOpsError(Exception):
 
 
 class VictorOps:
+    # TODO: perhaps these shouldn't be kw-only args
     def __init__(self, *, api_id: str, api_key: str,
                  create_incident_url: str,
                  team_ids: Union[None, str, AbstractSet[str]] = None,
@@ -74,7 +75,7 @@ class VictorOps:
         self._session.headers['X-VO-Api-Id'] = api_id
         self._session.headers['X-VO-Api-Key'] = api_key
 
-    def send_page(self, *, summary: str, description: str) -> None:
+    def send_page(self, summary: str, description: str) -> None:
         """Creates a new paging incident in VictorOps.
 
         Parameters

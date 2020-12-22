@@ -18,6 +18,8 @@
             Unacknowledged page
             {% endif %}
             &nbsp;<br class="is-hidden-tablet">
+            {# The relative-time tag is provided by Github's time-elements library:
+               https://github.com/github/time-elements#relative-time #}
             <small><relative-time datetime="{{ incident.time }}Z">{{ incident.time }} UTC</relative-time></small>
         </div>
     </div>
