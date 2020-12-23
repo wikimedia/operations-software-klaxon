@@ -19,12 +19,13 @@ setuptools.setup(
     python_requires='>=3.7',
     install_requires=[
         # These are the versions packaged in Debian Buster.
-        "requests==2.21.0",
+        "requests>=2.21.0",
         "flask==1.0.2",
         "cachetools==4.2.0",
         "python-dateutil==2.8.1",
     ],
     extras_require={'tests': [
-        "responses",
+        # json_params_matcher added in this version.
+        "responses>=0.11.0",
     ]},
 )
