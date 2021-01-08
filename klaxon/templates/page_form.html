@@ -12,10 +12,10 @@
             <div class="field">
                 <label class="label">You are logged in as: </label>
                 <div class="control">
-                    <input class="input" type="text" value="{{ username }}" readonly>
+                    <input class="input" type="text" value="{{ identity }}" readonly>
                 </div>
                 <p class="help">
-                    Your username will be included.
+                    Your username{% if email %} and email address{% endif %} will be included.
                 </p>
             </div>
 

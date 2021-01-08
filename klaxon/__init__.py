@@ -37,6 +37,7 @@ CONFIG_DEFAULTS = {
     'KLAXON_INCIDENT_LIST_CACHE_TTL_SECONDS': '10',
     'KLAXON_INCIDENT_LIST_RECENCY_MINUTES': '60',
     'KLAXON_CAS_AUTH_HEADER': 'CAS-User',
+    'KLAXON_CAS_EMAIL_HEADER': 'X-CAS-Mail',
     'KLAXON_VO_API_ID': None,
     'KLAXON_VO_API_KEY': None,
     'KLAXON_VO_CREATE_INCIDENT_URL': None,
@@ -109,6 +110,19 @@ def create_app():
             raise werkzeug.exceptions.Forbidden
         return request.headers.get(header, default='unknown')
 
+    def get_cas_user_email():
+        """From request context, returns the logged-in user's email address, if available."""
+        header = app.config['KLAXON_CAS_EMAIL_HEADER']
+        return request.headers.get(header, default=None)
+
+    def get_user_identity():
+        """From request context, returns the logged-in username + email address, if available."""
+        email = get_cas_user_email()
+        if email:
+            return f"{get_username()} ({email})"
+        else:
+            return get_username()
+
     @app.route('/')
     def root():
         return render_template('index.html')
@@ -122,14 +136,16 @@ def create_app():
 
     @app.route('/protected/page_form')
     def page_form():
-        return render_template('page_form.html', username=get_username())
+        return render_template('page_form.html', identity=get_user_identity(),
+                               email=get_cas_user_email())
 
     @app.route('/protected/submit_page', methods=['POST'])
     def submit_page():
         form = request.form
         # TODO: validate that required fields in the form were included.
         summary = form['summary']
-        headline = f"Manual #page by {get_username()}: {summary}"
+        headline = f"Manual page by {get_user_identity()}: {summary}"
+
         irc_logger.info(headline)
         vo.send_page(summary=headline,
                      description=form['description'])
