@@ -120,4 +120,10 @@ def create_app():
               'but it was sent.')
         return redirect('/')
 
+    # Two flavors of the debug handler, so we can inspect both not-logged-in and logged-in state.
+    @app.route('/_debug')
+    @app.route('/protected/_debug')
+    def debug():
+        return render_template('debug.html', vars=request.environ)
+
     return app

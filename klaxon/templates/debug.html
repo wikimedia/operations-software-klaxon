@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="section">
+    <div class="container block has-text-centered">
+        <h2 class="title is-4">Debug info</h2>
+    </div>
+    <div class="container block is-max-desktop">
+        <table class="table is-striped">
+            <tbody>
+                {% for k, v in vars.items() %}
+                <tr>
+                    <td>
+                        {{ k }}
+                    </td>
+                    <td>
+                        {{ v }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}
