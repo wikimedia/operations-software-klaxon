@@ -48,23 +48,27 @@
     <h2 class="title is-4">I need help!</h2>
     <div class="container block">
         <div class="control">
-            <a class="button is-primary is-danger" href="/protected/page_form">
-                <strong>Wake up an SRE</strong>
-            </a>
-        </div>
-        <p class="help narrow container">If you are confident there's a widespread issue affecting users, or some other
-            emergency (e.g. your shell account was compromised), and that it isn't known to us already, you can page us.
-            Paging is restricted to WMF staff and other trusted individuals, as it can wake up engineers who are asleep.</p>
-    </div>
-    <div class="container block">
-        <div class="control">
             <a href="https://phabricator.wikimedia.org/maniphest/task/edit/form/1/?projects=PHID-PROJ-5hj6ygnanfu23mmnlvmd"
                 class="button is-primary">
                 <strong>File a task on Phabricator</strong>
             </a>
         </div>
         <p class="help narrow container">Open an SRE ticket for issues that aren't emergencies &amp; can be handled
-            during business hours. <a href="https://www.mediawiki.org/wiki/Phabricator/Help">Requires a Phabricator account or Wikimedia developer login.</a></p>
+            during business hours.
+            Requires a <a href="https://www.mediawiki.org/wiki/Phabricator/Help">Phabricator account</a> or
+            <a href="https://www.mediawiki.org/wiki/Developer_account">Wikimedia developer login</a> (anyone can create these).</p>
+    </div>
+    <div class="container block">
+        <div class="control">
+            <a class="button is-primary is-danger" href="/protected/page_form">
+                <strong>Wake up an SRE</strong>
+            </a>
+        </div>
+        <p class="help narrow container">If you are confident there's a widespread issue affecting users, or some other
+            emergency (e.g. your <a href="https://wikitech.wikimedia.org/wiki/Production_access">shell account</a> was
+            compromised), and that it isn't known to us already, you can page us. Paging is restricted to
+            <a href="https://wikitech.wikimedia.org/wiki/Klaxon#Who_is_allowed_to_send_pages_using_Klaxon?">WMF staff and other trusted individuals</a>,
+            as it can wake up engineers who are asleep.</p>
     </div>
     <div class="container block">
         <div class="control">
@@ -72,7 +76,8 @@
                 <strong>Chat with us</strong>
             </a>
         </div>
-        <p class="help narrow container">Real-time text chat via IRC.</p>
+        <p class="help narrow container">Real-time text chat via IRC in the public <code>#wikimedia-sre</code> channel.
+        You're most likely to receive a response during European and North American business hours.</p>
     </div>
 </section>
 <script type="module" src="{{ url_for('static', filename='github.time-elements.v3.1.1.js') }}" integrity="sha384-xLlXob7FVjDIdjATAzHON8P8ADRd7DkLwOH9PoeXwBgek3eD0Z6iSmewMLZnUFV+"></script>
