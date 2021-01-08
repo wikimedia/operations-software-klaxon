@@ -14,8 +14,11 @@
             .narrow {
                 max-width: 30rem !important;
             }
-            .panel-block {
+            .panel-block, .table {
                 word-break: break-word; /* Fixes iPhone SE-sized screens. https://github.com/jgthms/bulma/pull/1641 */
+            }
+            .debug-table-key {
+                word-break: initial; /* But don't break words of keys in the k/v pair debug table. */
             }
         </style>
     </head>
