@@ -40,6 +40,7 @@ CONFIG_DEFAULTS = {
     'KLAXON_VO_CREATE_INCIDENT_URL': None,
     'KLAXON_SECRET_KEY': None,
     'KLAXON_ADMIN_CONTACT_EMAIL': None,
+    'KLAXON_TEAM_IDS_FILTER': None,     # A comma-separated list of team IDs, or unset.
 }
 
 
@@ -67,10 +68,17 @@ def create_app():
     api_cache = cachetools.TTLCache(1, float(app.config['KLAXON_INCIDENT_LIST_CACHE_TTL_SECONDS']))
     api_lock = threading.RLock()
 
+    team_ids = app.config['KLAXON_TEAM_IDS_FILTER']
+    if team_ids:
+        team_ids = set(team_ids.split(','))
+    else:
+        team_ids = set()
+
     vo = VictorOps(api_id=app.config['KLAXON_VO_API_ID'], api_key=app.config['KLAXON_VO_API_KEY'],
                    create_incident_url=app.config['KLAXON_VO_CREATE_INCIDENT_URL'],
                    repository=app.config['KLAXON_REPOSITORY'],
-                   admin_email=app.config['KLAXON_ADMIN_CONTACT_EMAIL'])
+                   admin_email=app.config['KLAXON_ADMIN_CONTACT_EMAIL'],
+                   team_ids=team_ids)
 
     @cachetools.cached(api_cache, lock=api_lock)
     def fetch_victorops():
