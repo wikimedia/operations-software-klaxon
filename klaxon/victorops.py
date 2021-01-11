@@ -58,7 +58,7 @@ class VictorOps:
         self._api_base_url = api_base_url
 
         self.team_ids = None
-        if isinstance(team_ids, str):
+        if isinstance(team_ids, str) and team_ids:
             self.team_ids = set([team_ids])
         elif team_ids:
             self.team_ids = set(team_ids)
