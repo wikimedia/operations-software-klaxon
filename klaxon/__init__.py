@@ -32,8 +32,8 @@ from klaxon.victorops import VictorOps
 
 CONFIG_DEFAULTS = {
     'KLAXON_REPOSITORY': __repository__,
-    'KLAXON_INCIDENT_LIST_CACHE_TTL_SECONDS': 10,
-    'KLAXON_INCIDENT_LIST_RECENCY_MINUTES': 60,
+    'KLAXON_INCIDENT_LIST_CACHE_TTL_SECONDS': '10',
+    'KLAXON_INCIDENT_LIST_RECENCY_MINUTES': '60',
     'KLAXON_CAS_AUTH_HEADER': 'CAS-User',
     'KLAXON_VO_API_ID': None,
     'KLAXON_VO_API_KEY': None,
@@ -64,7 +64,7 @@ def create_app():
     # for example: gunicorn --worker-class gthread --workers 1 --threads 8 'klaxon:create_app()'
 
     # Max. 1 item in the cache; TTL duration as configured.
-    api_cache = cachetools.TTLCache(1, app.config['KLAXON_INCIDENT_LIST_CACHE_TTL_SECONDS'])
+    api_cache = cachetools.TTLCache(1, float(app.config['KLAXON_INCIDENT_LIST_CACHE_TTL_SECONDS']))
     api_lock = threading.RLock()
 
     vo = VictorOps(api_id=app.config['KLAXON_VO_API_ID'], api_key=app.config['KLAXON_VO_API_KEY'],
@@ -75,7 +75,8 @@ def create_app():
     @cachetools.cached(api_cache, lock=api_lock)
     def fetch_victorops():
         """Return the most recent incidents in reverse chronological order.  Memoized."""
-        max_delta = datetime.timedelta(minutes=app.config['KLAXON_INCIDENT_LIST_RECENCY_MINUTES'])
+        max_delta = datetime.timedelta(
+            minutes=float(app.config['KLAXON_INCIDENT_LIST_RECENCY_MINUTES']))
         now = datetime.datetime.now(datetime.timezone.utc)
         rv = [i for i in vo.fetch_incidents() if now - i.time < max_delta]
         rv.sort(key=operator.attrgetter('time'))
