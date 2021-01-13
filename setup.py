@@ -18,6 +18,7 @@ setuptools.setup(
     ],
     python_requires='>=3.7',
     install_requires=[
+        "wmflib>=0.0.6",
         # These are the versions packaged in Debian Buster.
         "requests>=2.21.0",
         "flask==1.0.2",

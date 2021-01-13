@@ -20,6 +20,7 @@ this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import datetime
+import logging
 import operator
 import os
 import threading
@@ -29,6 +30,7 @@ import werkzeug.exceptions
 from flask import Flask, flash, redirect, render_template, request
 
 from klaxon.victorops import VictorOps
+from wmflib.irc import SALSocketHandler
 
 CONFIG_DEFAULTS = {
     'KLAXON_REPOSITORY': __repository__,
@@ -41,6 +43,8 @@ CONFIG_DEFAULTS = {
     'KLAXON_SECRET_KEY': None,
     'KLAXON_ADMIN_CONTACT_EMAIL': None,
     'KLAXON_TEAM_IDS_FILTER': None,     # A comma-separated list of team IDs, or unset.
+    'KLAXON_TCPIRCBOT_HOST': None,
+    'KLAXON_TCPIRCBOT_PORT': None,
 }
 
 
@@ -80,6 +84,13 @@ def create_app():
                    admin_email=app.config['KLAXON_ADMIN_CONTACT_EMAIL'],
                    team_ids=team_ids)
 
+    irc_logger = logging.getLogger('klaxon_irc_announce')
+    if app.config['KLAXON_TCPIRCBOT_HOST'] and app.config['KLAXON_TCPIRCBOT_PORT']:
+        irc_logger.addHandler(SALSocketHandler(app.config['KLAXON_TCPIRCBOT_HOST'],
+                                               int(app.config['KLAXON_TCPIRCBOT_PORT']),
+                                               'klaxon'))
+        irc_logger.setLevel(logging.INFO)
+
     @cachetools.cached(api_cache, lock=api_lock)
     def fetch_victorops():
         """Return the most recent incidents in reverse chronological order.  Memoized."""
@@ -118,7 +129,9 @@ def create_app():
         form = request.form
         # TODO: validate that required fields in the form were included.
         summary = form['summary']
-        vo.send_page(summary=f"Manual page by {get_username()}: {summary}",
+        headline = f"Manual #page by {get_username()}: {summary}"
+        irc_logger.info(headline)
+        vo.send_page(summary=headline,
                      description=form['description'])
 
         with api_lock:
