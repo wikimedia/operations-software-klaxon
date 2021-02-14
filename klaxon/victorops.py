@@ -118,7 +118,9 @@ class VictorOps:
         for i in j['incidents']:
             if self.team_ids and not set(i['pagedTeams']) & self.team_ids:
                 continue
-            yield Incident(summary=i['service'],
+            summary = (i.get('service', None) or i.get('entityDisplayName', None)
+                       or i.get('monitorName', None) or 'unknown alert')
+            yield Incident(summary=summary,
                            acked=i['currentPhase'] != 'UNACKED',
                            time=dateutil.parser.isoparse(i['startTime']),
                            teams=set(i['pagedTeams']))
