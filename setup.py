@@ -22,6 +22,7 @@ setuptools.setup(
         # These are the versions packaged in Debian Buster.
         "requests>=2.21.0",
         "flask==1.0.2",
+        "itsdangerous==0.24",
         "cachetools==4.2.0",
         "python-dateutil==2.8.1",
     ],
