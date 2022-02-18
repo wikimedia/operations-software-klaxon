@@ -144,7 +144,7 @@ def create_app():
         form = request.form
         # TODO: validate that required fields in the form were included.
         summary = form['summary']
-        headline = f"Manual page by {get_user_identity()}: {summary}"
+        headline = f"Manual #page by {get_user_identity()}: {summary}"
 
         irc_logger.info(headline)
         vo.send_page(summary=headline,
