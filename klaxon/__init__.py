@@ -28,6 +28,7 @@ import threading
 import cachetools
 import werkzeug.exceptions
 from flask import Flask, flash, redirect, render_template, request
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from klaxon.victorops import VictorOps
 from wmflib.irc import SALSocketHandler
@@ -51,6 +52,7 @@ CONFIG_DEFAULTS = {
 
 def create_app():
     app = Flask(__name__)
+    app.wsgi_app = ProxyFix(app.wsgi_app)
     if app.config['ENV'] == 'development':
         app.config['TEMPLATES_AUTO_RELOAD'] = True
 
