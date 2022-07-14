@@ -21,7 +21,8 @@ setuptools.setup(
         "wmflib>=0.0.6",
         # These are the versions packaged in Debian Buster.
         "requests>=2.21.0",
-        "flask==1.0.2",
+        "flask==1.1.3",  # except for this lol because jinja2 breakage
+        "markupsafe==1.1.0",
         "itsdangerous==0.24",
         "cachetools==4.2.0",
         "python-dateutil==2.8.1",
