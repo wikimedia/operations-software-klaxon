@@ -114,3 +114,70 @@ class TestVictorOps(unittest.TestCase):
         with self.assertRaises(requests.exceptions.HTTPError):
             list(self.v.fetch_incidents())
         self.assertEqual(1, len(responses.calls))
+
+    @responses.activate
+    def test_fetch_oncallers(self):
+        resp_payload = {
+            'teamsOnCall': [{
+                'team': {'name': 'SRE', 'slug': 'team-xyzzyblah'},
+                'oncallNow': [{
+                    'escalationPolicy': {'name': 'default', 'slug': 'pol-xyzzyblah'},
+                    'users': [{'onCalluser': {'username': 'cdanis'}},
+                              {'onCalluser': {'username': 'rzl'}}]
+                }]
+            }]
+        }
+        expected = ['cdanis', 'rzl']
+        responses.add(responses.GET, API_BASE_URL + 'v1/oncall/current',
+                      json=resp_payload)
+        reply = list(self.v.fetch_oncallers())
+
+        self.assertEqual(reply, expected)
+
+        self.assertEqual(1, len(responses.calls))
+
+    @responses.activate
+    def test_fetch_oncallers_filtered(self):
+        resp_payload = {
+            'teamsOnCall': [
+                {
+                    'team': {'name': 'SRE', 'slug': 'team-xyzzyblah'},
+                    'oncallNow': [{
+                        'escalationPolicy': {'name': 'default', 'slug': 'pol-xyzzyblah'},
+                        'users': [{'onCalluser': {'username': 'cdanis'}},
+                                  {'onCalluser': {'username': 'rzl'}}]
+                    }, {
+                        'escalationPolicy': {'name': 'batphone', 'slug': 'pol-pleasestop'},
+                        'users': [{'onCalluser': {'username': 'literally'}},
+                                  {'onCalluser': {'username': 'everybody'}}]
+                    }]
+                },
+                {
+                    'team': {'name': 'WMCS', 'slug': 'team-abcd12345'},
+                    'oncallNow': [{
+                        'escalationPolicy': {'name': 'default', 'slug': 'pol-xyzzyblah'},
+                        'users': [{'onCalluser': {'username': 'bstorm'}}]
+                    }]
+                }]
+        }
+        expected = ['cdanis', 'rzl']
+        responses.add(responses.GET, API_BASE_URL + 'v1/oncall/current',
+                      json=resp_payload)
+
+        self.v.esc_policy_ids = set(['pol-xyzzyblah'])
+        self.v.team_ids = set(['team-xyzzyblah'])
+        reply = list(self.v.fetch_oncallers())
+
+        self.assertEqual(reply, expected)
+
+        self.assertEqual(1, len(responses.calls))
+
+        self.v.esc_policy_ids = self.v.team_ids = None
+
+    @responses.activate
+    def test_fetch_oncallers_httperror(self):
+        responses.add(responses.GET, API_BASE_URL + 'v1/oncall/current',
+                      body='no healthy upstream', status=503)
+        with self.assertRaises(requests.exceptions.HTTPError):
+            list(self.v.fetch_oncallers())
+        self.assertEqual(1, len(responses.calls))

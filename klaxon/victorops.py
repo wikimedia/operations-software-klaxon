@@ -31,6 +31,7 @@ class VictorOps:
     def __init__(self, *, api_id: str, api_key: str,
                  create_incident_url: str,
                  team_ids: Union[None, str, AbstractSet[str]] = None,
+                 esc_policy_ids: Union[None, str, AbstractSet[str]] = None,
                  admin_email: str,
                  api_base_url: str = 'https://api.victorops.com/api-public/',
                  repository: str = klaxon.__repository__):
@@ -43,25 +44,32 @@ class VictorOps:
             create_incident_url : str
                 The URL of the REST integration endpoint to be used to create new incidents.
                 See https://help.victorops.com/knowledge-base/rest-endpoint-integration-guide/
-            team_ids : AbstractSet[str]
-                A set of team identifiers to filter open incidents.  If empty, no filter.
+            team_ids : Union[None, str, AbstractSet[str]]
+                A single team ID or a set of team IDs to filter open incidents & oncall rotations.
+                If empty, no filter.
+            esc_policy_ids : Union[None, str, AbstractSet[str]]
+                A single escalation policy ID or a set of them to filter oncallers.
+                If empty, no filter.
             admin_email : str
                 An email address for the administrator of this Klaxon interface, used in our
                 outgoing User-Agent.
             api_base_url : str
-                The root URL of the VictorOps API.  Used for fetching incidents, but not for
-                creating new ones -- per the instructions at
+                The root URL of the VictorOps API.  Used for fetching incidents & oncallers,
+                but not for creating new ones -- per the instructions at
                 https://portal.victorops.com/public/api-docs.html#!/Incidents/post_api_public_v1_incidents
         """
 
         self._create_incident_url = create_incident_url
         self._api_base_url = api_base_url
 
-        self.team_ids = None
-        if isinstance(team_ids, str) and team_ids:
-            self.team_ids = set([team_ids])
-        elif team_ids:
-            self.team_ids = set(team_ids)
+        def setOrStringToSet(v):
+            if isinstance(v, str) and v:
+                return set([v])
+            elif v:
+                return set(v)
+            return None
+        self.team_ids = setOrStringToSet(team_ids)
+        self.esc_policy_ids = setOrStringToSet(esc_policy_ids)
 
         self._session = requests.Session()
         # A sample of our outgoing User-Agent:
@@ -124,3 +132,17 @@ class VictorOps:
                            acked=i['currentPhase'] != 'UNACKED',
                            time=dateutil.parser.isoparse(i['startTime']),
                            teams=set(i['pagedTeams']))
+
+    def fetch_oncallers(self) -> Iterable[str]:
+        resp = self._session.get(urljoin(self._api_base_url, 'v1/oncall/current'))
+        resp.raise_for_status()
+        j = resp.json()
+        for t in j['teamsOnCall']:
+            if self.team_ids and t['team']['slug'] not in self.team_ids:
+                continue
+            for o in t['oncallNow']:
+                pol_id = o['escalationPolicy']['slug']
+                if self.esc_policy_ids and pol_id not in self.esc_policy_ids:
+                    continue
+                for u in o['users']:
+                    yield u['onCalluser']['username']
