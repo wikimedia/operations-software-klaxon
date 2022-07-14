@@ -66,12 +66,20 @@
                 <strong>Wake up an SRE</strong>
             </a>
         </div>
-        <p class="help narrow container">If you are confident there's a widespread issue affecting users, or some other
+        <div class="narrow container">
+            {% if oncallers %}
+            <strong>Currently oncall:</strong> {{ oncallers|sort|join(', ') }}
+            {% endif %}
+        </div>
+        <p class="help narrow container">
+            If you are confident there's a widespread issue affecting users, or some other
             emergency (e.g. your <a href="https://wikitech-static.wikimedia.org/wiki/Production_access">shell account</a> was
             compromised), and that it isn't known to us already, you can fill out a form to page us. Paging is restricted to
-            <a href="https://wikitech-static.wikimedia.org/wiki/Klaxon#Who_is_allowed_to_send_pages_using_Klaxon?">WMF staff and other trusted individuals</a>,
-            as it can wake up engineers who are asleep.</p>
-    </div>
+            <a href="https://wikitech-static.wikimedia.org/wiki/Klaxon#Who_is_allowed_to_send_pages_using_Klaxon?">WMF staff and
+                other trusted individuals</a>,
+            as it can wake up engineers who are asleep.
+        </p>
+        </div>
     <div class="container block">
         <div class="control">
             <a class="button is-info" href="https://web.libera.chat/#wikimedia-sre">
