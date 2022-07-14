@@ -12,7 +12,7 @@ API_ID = 'api_magic_id_1234'
 API_KEY = 'secret_key_a1b2c3'
 ADMIN_EMAIL = 'klaxon@administrator.org'
 CREATE_URL = 'https://test.victorops/abcdef012345/createurl'
-API_BASE_URL = 'https://test.victorops/api-public/v1/'
+API_BASE_URL = 'https://test.victorops/api-public/'
 
 
 class TestVictorOps(unittest.TestCase):
@@ -93,7 +93,7 @@ class TestVictorOps(unittest.TestCase):
                                             tzinfo=datetime.timezone.utc),
                      teams=set(['team-xyzzy'])),
         ]
-        responses.add(responses.GET, API_BASE_URL + 'incidents',
+        responses.add(responses.GET, API_BASE_URL + 'v1/incidents',
                       json=resp_payload)
 
         reply = list(self.v.fetch_incidents())
@@ -109,7 +109,7 @@ class TestVictorOps(unittest.TestCase):
 
     @responses.activate
     def test_fetch_incidents_httperror(self):
-        responses.add(responses.GET, API_BASE_URL + 'incidents',
+        responses.add(responses.GET, API_BASE_URL + 'v1/incidents',
                       body='no healthy upstream', status=503)
         with self.assertRaises(requests.exceptions.HTTPError):
             list(self.v.fetch_incidents())

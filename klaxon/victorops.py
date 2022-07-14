@@ -32,7 +32,7 @@ class VictorOps:
                  create_incident_url: str,
                  team_ids: Union[None, str, AbstractSet[str]] = None,
                  admin_email: str,
-                 api_base_url: str = 'https://api.victorops.com/api-public/v1/',
+                 api_base_url: str = 'https://api.victorops.com/api-public/',
                  repository: str = klaxon.__repository__):
         """Creates a VictorOps API wrapper.
 
@@ -112,7 +112,7 @@ class VictorOps:
         requests.HTTPError
             if the HTTP request failed
         """
-        resp = self._session.get(urljoin(self._api_base_url, 'incidents'))
+        resp = self._session.get(urljoin(self._api_base_url, 'v1/incidents'))
         resp.raise_for_status()
         j = resp.json()
         for i in j['incidents']:
