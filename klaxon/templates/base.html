@@ -36,16 +36,22 @@
                 </div>
                 {% if topright_button %}
                 <div class="level-right">
-                    <div class="level-item">
-                        <a class="button is-primary is-danger" href="/protected/page_form">
-                            <strong>Wake up an SRE</strong>
-                        </a>
+                    <div class="level-item has-text-centered">
+                        <div>
+                            <a class="button is-primary is-danger" href="/protected/page_form">
+                                <strong>Wake up an SRE</strong>
+                            </a>
+                            {% if oncallers %}
+                            <br />
+                            <strong>Currently oncall:</strong> {{ oncallers|sort|join(', ') }}
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
                 {% endif %}
             </nav>
             <div class="container has-text-centered">
-                <h1 class="title">
+                <h1 class="title is-1">
                     📟 SRE Emergency Contact
                 </h1>
             </div>
