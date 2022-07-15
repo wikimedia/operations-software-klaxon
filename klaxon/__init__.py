@@ -24,6 +24,7 @@ import logging
 import operator
 import os
 import threading
+from typing import Optional, Set
 
 import cachetools
 import werkzeug.exceptions
@@ -34,7 +35,7 @@ from wmflib.irc import SALSocketHandler
 
 CONFIG_DEFAULTS = {
     'KLAXON_REPOSITORY': __repository__,
-    'KLAXON_INCIDENT_LIST_CACHE_TTL_SECONDS': '10',
+    'KLAXON_VO_API_CACHE_TTL_SECONDS': '10',
     'KLAXON_INCIDENT_LIST_RECENCY_MINUTES': '60',
     'KLAXON_CAS_AUTH_HEADER': 'CAS-User',
     'KLAXON_CAS_EMAIL_HEADER': 'X-CAS-Mail',
@@ -44,6 +45,8 @@ CONFIG_DEFAULTS = {
     'KLAXON_SECRET_KEY': None,
     'KLAXON_ADMIN_CONTACT_EMAIL': None,
     'KLAXON_TEAM_IDS_FILTER': None,     # A comma-separated list of team IDs, or unset.
+    # A comma-separated list of escalation policies, or unset.
+    'KLAXON_ESC_POLICY_IDS_FILTER': None,
     'KLAXON_TCPIRCBOT_HOST': None,
     'KLAXON_TCPIRCBOT_PORT': None,
 }
@@ -61,7 +64,7 @@ def create_app():
 
     # VictorOps aka Splunk On-Call has rate limits on their API.
     # So, a Klaxon instance does some local caching of API calls, reusing the response for the
-    # list of current incidents for a brief interval.
+    # list of current incidents & current oncallers for a brief interval.
     #
     # This technique only works with the 'gthread' Gunicorn executor model, or similar --
     # your workers need to share an address space.  (Most of the gevent executors should
@@ -70,20 +73,25 @@ def create_app():
     # for example: gunicorn --worker-class gthread --workers 1 --threads 8 'klaxon:create_app()'
 
     # Max. 1 item in the cache; TTL duration as configured.
-    api_cache = cachetools.TTLCache(1, float(app.config['KLAXON_INCIDENT_LIST_CACHE_TTL_SECONDS']))
+    api_incidents_cache = cachetools.TTLCache(
+        1, float(app.config['KLAXON_VO_API_CACHE_TTL_SECONDS']))
+    api_oncall_cache = cachetools.TTLCache(
+        1, float(app.config['KLAXON_VO_API_CACHE_TTL_SECONDS']))
     api_lock = threading.RLock()
 
-    team_ids = app.config['KLAXON_TEAM_IDS_FILTER']
-    if team_ids:
-        team_ids = set(team_ids.split(','))
-    else:
-        team_ids = set()
+    def parse_set(value: Optional[str]) -> Set[str]:
+        if value:
+            return set(value.split(','))
+        return set()
+
+    team_ids = parse_set(app.config['KLAXON_TEAM_IDS_FILTER'])
+    esc_policy_ids = parse_set(app.config['KLAXON_ESC_POLICY_IDS_FILTER'])
 
     vo = VictorOps(api_id=app.config['KLAXON_VO_API_ID'], api_key=app.config['KLAXON_VO_API_KEY'],
                    create_incident_url=app.config['KLAXON_VO_CREATE_INCIDENT_URL'],
                    repository=app.config['KLAXON_REPOSITORY'],
                    admin_email=app.config['KLAXON_ADMIN_CONTACT_EMAIL'],
-                   team_ids=team_ids)
+                   team_ids=team_ids, esc_policy_ids=esc_policy_ids)
 
     irc_logger = logging.getLogger('klaxon_irc_announce')
     if app.config['KLAXON_TCPIRCBOT_HOST'] and app.config['KLAXON_TCPIRCBOT_PORT']:
@@ -92,8 +100,8 @@ def create_app():
                                                'klaxon'))
         irc_logger.setLevel(logging.INFO)
 
-    @cachetools.cached(api_cache, lock=api_lock)
-    def fetch_victorops():
+    @cachetools.cached(api_incidents_cache, lock=api_lock)
+    def fetch_victorops_incidents():
         """Return the most recent incidents in reverse chronological order.  Memoized."""
         max_delta = datetime.timedelta(
             minutes=float(app.config['KLAXON_INCIDENT_LIST_RECENCY_MINUTES']))
@@ -102,6 +110,10 @@ def create_app():
         rv.sort(key=operator.attrgetter('time'))
         rv.reverse()
         return rv
+
+    @cachetools.cached(api_oncall_cache, lock=api_lock)
+    def fetch_victorops_oncallers():
+        return list(vo.fetch_oncallers())
 
     def get_username():
         """From request context, returns the logged-in user or 'unknown' (for local testing)"""
@@ -125,12 +137,14 @@ def create_app():
 
     @app.route('/')
     def root():
-        return render_template('index.html')
+        oncallers = fetch_victorops_oncallers()
+        return render_template('index.html',
+                               oncallers=oncallers)
 
     @app.route('/recent_incidents')
     def recent_incidents():
         """Returns an HTML fragment called by JS to fill in the body of a div of recent alerts."""
-        incidents = fetch_victorops()
+        incidents = fetch_victorops_incidents()
         return render_template('incident_list.html',
                                incidents=incidents)
 
@@ -151,7 +165,7 @@ def create_app():
                      description=form['description'])
 
         with api_lock:
-            api_cache.clear()
+            api_incidents_cache.clear()
         # We try to prevent ourselves from caching stale data, but the VictorOps API is only
         # eventual consistent, so we present this message to the user anyway.
         flash('Your page was sent. It may not immediately appear in recent alerts, '
