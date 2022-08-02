@@ -13,11 +13,12 @@ API_KEY = 'secret_key_a1b2c3'
 ADMIN_EMAIL = 'klaxon@administrator.org'
 CREATE_URL = 'https://test.victorops/abcdef012345/createurl'
 API_BASE_URL = 'https://test.victorops/api-public/'
+TEAM_IDS = 'team-sre'
 
 
 class TestVictorOps(unittest.TestCase):
     v = VictorOps(api_id=API_ID, api_key=API_KEY, create_incident_url=CREATE_URL,
-                  admin_email=ADMIN_EMAIL, api_base_url=API_BASE_URL)
+                  admin_email=ADMIN_EMAIL, api_base_url=API_BASE_URL, team_ids=TEAM_IDS)
 
     @responses.activate
     def test_send_page(self):
@@ -64,20 +65,48 @@ class TestVictorOps(unittest.TestCase):
         self.assertEqual(1, len(responses.calls))
 
     @responses.activate
-    def test_fetch_incidents(self):
+    def test_fetch_incidents_and_escalate_unpaged(self):
         resp_payload = {
             'incidents': [
                 {
                     'service': 'PerplexityTooHigh_60m',
                     'currentPhase': 'ACKED',
                     'startTime': '2020-12-22T19:02:09.62204Z',
-                    'pagedTeams': [],
+                    'pagedTeams': ['team-sre'],
+                    'pagedUsers': ['rzl'],
+                    'incidentNumber': '60',
                 },
                 {
-                    'service': 'this is a summary',
+                    'service': 'unacked but has paged someone',
+                    'currentPhase': 'UNACKED',
+                    'startTime': '2020-12-22T19:02:09.62204Z',
+                    'pagedTeams': ['team-sre'],
+                    'pagedUsers': ['godog'],
+                    'incidentNumber': '62',
+                },
+                {
+                    'service': 'acked',
+                    'currentPhase': 'ACKED',
+                    'startTime': '2020-12-22T19:02:09.62204Z',
+                    'pagedTeams': ['team-sre'],
+                    'pagedUsers': [],
+                    'incidentNumber': '63',
+                },
+                {
+                    'service': 'unacked and not paging anyone',
+                    'currentPhase': 'UNACKED',
+                    'startTime': '2020-12-22T20:02:09.62204Z',
+                    'pagedTeams': ['team-sre'],
+                    'pagedUsers': [],
+                    'incidentNumber': '61',
+                },
+                {
+                    'service': 'wrong team',
                     'currentPhase': 'UNACKED',
                     'startTime': '2020-12-22T20:02:09.62204Z',
                     'pagedTeams': ['team-xyzzy'],
+                    'pagedUsers': [],
+                    'incidentNumber': '67',
                 },
             ]
         }
@@ -86,12 +115,30 @@ class TestVictorOps(unittest.TestCase):
                      acked=True,
                      time=datetime.datetime(2020, 12, 22, 19, 2, 9, 622040,
                                             tzinfo=datetime.timezone.utc),
-                     teams=set([])),
-            Incident(summary='this is a summary',
+                     teams=set(['team-sre']),
+                     paged_users=set(['rzl']),
+                     id='60'),
+            Incident(summary='unacked but has paged someone',
+                     acked=False,
+                     time=datetime.datetime(2020, 12, 22, 19, 2, 9, 622040,
+                                            tzinfo=datetime.timezone.utc),
+                     teams=set(['team-sre']),
+                     paged_users=set(['godog']),
+                     id='62'),
+            Incident(summary='acked',
+                     acked=True,
+                     time=datetime.datetime(2020, 12, 22, 19, 2, 9, 622040,
+                                            tzinfo=datetime.timezone.utc),
+                     teams=set(['team-sre']),
+                     paged_users=set(),
+                     id='63'),
+            Incident(summary='unacked and not paging anyone',
                      acked=False,
                      time=datetime.datetime(2020, 12, 22, 20, 2, 9, 622040,
                                             tzinfo=datetime.timezone.utc),
-                     teams=set(['team-xyzzy'])),
+                     teams=set(['team-sre']),
+                     paged_users=set(),
+                     id='61'),
         ]
         responses.add(responses.GET, API_BASE_URL + 'v1/incidents',
                       json=resp_payload)
@@ -107,6 +154,20 @@ class TestVictorOps(unittest.TestCase):
         self.assertEqual(API_ID, responses.calls[0].request.headers['X-VO-Api-Id'])
         self.assertEqual(API_KEY, responses.calls[0].request.headers['X-VO-Api-Key'])
 
+        # Now test escalate_unpaged_incidents()
+        expected_payload = {
+            'userName': 'escalator_sysuser',
+            'reroutes': [{
+                'incidentNumber': '61',
+                'targets': [{'type': 'EscalationPolicy', 'slug': 'pol-batphone'}],
+            }]
+        }
+        responses.add(responses.POST, API_BASE_URL + 'v1/incidents/reroute', json={},
+                      match=[responses.json_params_matcher(expected_payload)])
+        self.v.escalate_unpaged_incidents('pol-batphone')
+
+        self.assertEqual(3, len(responses.calls))  # escalate_unpaged_incidents calls fetch also
+
     @responses.activate
     def test_fetch_incidents_httperror(self):
         responses.add(responses.GET, API_BASE_URL + 'v1/incidents',
@@ -119,7 +180,7 @@ class TestVictorOps(unittest.TestCase):
     def test_fetch_oncallers(self):
         resp_payload = {
             'teamsOnCall': [{
-                'team': {'name': 'SRE', 'slug': 'team-xyzzyblah'},
+                'team': {'name': 'SRE', 'slug': 'team-sre'},
                 'oncallNow': [{
                     'escalationPolicy': {'name': 'default', 'slug': 'pol-xyzzyblah'},
                     'users': [{'onCalluser': {'username': 'cdanis'}},

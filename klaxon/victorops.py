@@ -16,10 +16,12 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class Incident:
+    id: str  # the API calls this 'incidentNumber' but it is actually a string.
     summary: str
-    acked: bool
+    acked: bool  # technically this is acked_or_resolved, but, ¯\_(ツ)_/¯
     time: datetime.datetime
-    teams: Set[str]
+    teams: Set[str]  # a set of team id slugs
+    paged_users: Set[str]  # a set of usernames currently being notified (once acked, always empty)
 
 
 class VictorOpsError(Exception):
@@ -130,6 +132,8 @@ class VictorOps:
                        or i.get('monitorName', None) or 'unknown alert')
             yield Incident(summary=summary,
                            acked=i['currentPhase'] != 'UNACKED',
+                           id=i['incidentNumber'],
+                           paged_users=set(i['pagedUsers']),
                            time=dateutil.parser.isoparse(i['startTime']),
                            teams=set(i['pagedTeams']))
 
@@ -146,3 +150,67 @@ class VictorOps:
                     continue
                 for u in o['users']:
                     yield u['onCalluser']['username']
+
+    def reroute_incidents(self, incidents: Iterable[Incident], escalate_to_policy: str,
+                          username: str = "escalator_sysuser"):
+        if not incidents:
+            return
+        payload = dict(
+            userName=username,
+            reroutes=[dict(incidentNumber=i.id,
+                           targets=[dict(type="EscalationPolicy", slug=escalate_to_policy)])
+                      for i in incidents])
+        resp = self._session.post(urljoin(self._api_base_url, "v1/incidents/reroute"), json=payload)
+        resp.raise_for_status()
+        j = resp.json()
+        return j
+
+    def escalate_unpaged_incidents(self, escalate_to_policy: str,
+                                   username: str = "escalator_sysuser"):
+        # If the initial escalation policy (e.g. business hours) pages members immediately,
+        # but may sometimes be empty, then that will produce incidents that are in state UNACKED
+        # but which also don't have any users listed in paged_users.
+        # So let's take those incidents and manually re-route them to the escalate_to_policy
+        # (e.g. batphone).
+        escalatable = [i for i in self.fetch_incidents() if not i.acked and not i.paged_users]
+        return self.reroute_incidents(escalatable, escalate_to_policy, username)
+
+
+if __name__ == '__main__':
+    import argparse
+    import os
+    import logging
+    p = argparse.ArgumentParser(
+        prog='victorops_cli',
+        description=('A simple CLI for VictorOps aka Splunk On-Call.'
+                     'API secrets can be read from the same env vars as used by Klaxon.'))
+    p.add_argument('--api_id', default=os.environ.get('KLAXON_VO_API_ID'))
+    p.add_argument('--api_key', default=os.environ.get('KLAXON_VO_API_KEY'))
+    p.add_argument('--admin_email', default=os.environ.get('KLAXON_ADMIN_CONTACT_EMAIL'))
+    p.add_argument('--team_ids_filter', default=os.environ.get('KLAXON_TEAM_IDS_FILTER'))
+    p.add_argument('-v', '--verbose', action='count', default=0,
+                   help='Verbosity (-v, -vv, etc).')
+    subparsers = p.add_subparsers(dest='command', metavar="COMMAND")
+    escalate_unpaged = subparsers.add_parser(
+        'escalate_unpaged', help="Escalate incidents that haven't paged to another rotation")
+    escalate_unpaged.add_argument('esc_policy_slug',
+                                  help='The escalation policy API slug to reroute to')
+    escalate_unpaged.add_argument('-u', '--username', default='escalator_sysuser',
+                                  help='The username performing the rerouting')
+    args = p.parse_args()
+    loglevel = logging.WARNING
+    if args.verbose >= 1:
+        loglevel = logging.INFO
+    if args.verbose >= 2:
+        loglevel = logging.DEBUG
+    logging.basicConfig(level=loglevel)
+    team_ids_filter = None
+    if args.team_ids_filter:
+        team_ids_filter = args.team_ids_filter.split(',')
+    v = VictorOps(api_id=args.api_id, api_key=args.api_key,
+                  team_ids=team_ids_filter,
+                  create_incident_url=None, admin_email=args.admin_email)
+
+    if args.command == 'escalate_unpaged':
+        v.escalate_unpaged_incidents(escalate_to_policy=args.esc_policy_slug,
+                                     username=args.username)
