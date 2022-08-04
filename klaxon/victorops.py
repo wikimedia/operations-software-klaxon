@@ -178,6 +178,7 @@ class VictorOps:
 
 if __name__ == '__main__':
     import argparse
+    import json
     import os
     import logging
     p = argparse.ArgumentParser(
@@ -212,5 +213,7 @@ if __name__ == '__main__':
                   create_incident_url=None, admin_email=args.admin_email)
 
     if args.command == 'escalate_unpaged':
-        v.escalate_unpaged_incidents(escalate_to_policy=args.esc_policy_slug,
-                                     username=args.username)
+        rv = v.escalate_unpaged_incidents(escalate_to_policy=args.esc_policy_slug,
+                                          username=args.username)
+        if rv:
+            print(json.dumps(rv, indent=4))
