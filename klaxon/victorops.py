@@ -175,12 +175,22 @@ class VictorOps:
         escalatable = [i for i in self.fetch_incidents() if not i.acked and not i.paged_users]
         return self.reroute_incidents(escalatable, escalate_to_policy, username)
 
+    def check_policy_pages_immediately(self, policy_slug: Iterable[str]):
+        '''Check that the given policy has at least one rotation_group with timeout 0.'''
+        resp = self._session.get(urljoin(self._api_base_url, f"v1/policies/{policy_slug}"))
+        resp.raise_for_status()
+        j = resp.json()
+        steps = j['steps']
+        return any(s for s in steps if s['timeout'] == 0
+                   and any(e['executionType'] == 'rotation_group' for e in s['entries']))
+
 
 if __name__ == '__main__':
     import argparse
     import json
-    import os
     import logging
+    import os
+    import sys
     p = argparse.ArgumentParser(
         prog='victorops_cli',
         description=('A simple CLI for VictorOps aka Splunk On-Call.'
@@ -198,6 +208,12 @@ if __name__ == '__main__':
                                   help='The escalation policy API slug to reroute to')
     escalate_unpaged.add_argument('-u', '--username', default='escalator_sysuser',
                                   help='The username performing the rerouting')
+    check_esc_policy_config = subparsers.add_parser(
+        'check_esc_policy_config',
+        help='Check that the given list of escalation policies sends a page '
+             'to a rotation immediately.')
+    check_esc_policy_config.add_argument('esc_policy_slug', nargs='+',
+                                         help='One or more escalation policy slugs.')
     args = p.parse_args()
     loglevel = logging.WARNING
     if args.verbose >= 1:
@@ -217,3 +233,10 @@ if __name__ == '__main__':
                                           username=args.username)
         if rv:
             print(json.dumps(rv, indent=4))
+    if args.command == 'check_esc_policy_config':
+        rv = 0
+        for policy in args.esc_policy_slug:
+            if not v.check_policy_pages_immediately(policy):
+                print(f"ERROR: Policy {policy} does not immediately page any rotation_group!")
+                rv = 2  # nagios CRITICAL
+        sys.exit(rv)
