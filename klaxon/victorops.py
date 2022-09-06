@@ -114,6 +114,21 @@ class VictorOps:
         if j['result'] != 'success':
             raise VictorOpsError(j.get('message', ''))
 
+    def _matches_teams(self, ii: Incident) -> bool:
+        if not self.team_ids:
+            return True
+        return bool(ii.teams & self.team_ids)
+
+    def _parse_incident(self, i) -> Incident:
+        summary = (i.get('service', None) or i.get('entityDisplayName', None)
+                   or i.get('monitorName', None) or 'unknown alert')
+        return Incident(summary=summary,
+                        acked=i['currentPhase'] != 'UNACKED',
+                        id=i['incidentNumber'],
+                        paged_users=set(i['pagedUsers']),
+                        time=dateutil.parser.isoparse(i['startTime']),
+                        teams=set(i['pagedTeams']))
+
     def fetch_incidents(self) -> Iterable[Incident]:
         """Fetches and yields the current incidents.
 
@@ -126,16 +141,9 @@ class VictorOps:
         resp.raise_for_status()
         j = resp.json()
         for i in j['incidents']:
-            if self.team_ids and not set(i['pagedTeams']) & self.team_ids:
-                continue
-            summary = (i.get('service', None) or i.get('entityDisplayName', None)
-                       or i.get('monitorName', None) or 'unknown alert')
-            yield Incident(summary=summary,
-                           acked=i['currentPhase'] != 'UNACKED',
-                           id=i['incidentNumber'],
-                           paged_users=set(i['pagedUsers']),
-                           time=dateutil.parser.isoparse(i['startTime']),
-                           teams=set(i['pagedTeams']))
+            ii = self._parse_incident(i)
+            if self._matches_teams(ii):
+                yield ii
 
     def fetch_oncallers(self) -> Iterable[str]:
         resp = self._session.get(urljoin(self._api_base_url, 'api-public/v1/oncall/current'))
