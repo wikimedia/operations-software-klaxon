@@ -35,7 +35,7 @@ class VictorOps:
                  team_ids: Union[None, str, AbstractSet[str]] = None,
                  esc_policy_ids: Union[None, str, AbstractSet[str]] = None,
                  admin_email: str,
-                 api_base_url: str = 'https://api.victorops.com/api-public/',
+                 api_base_url: str = 'https://api.victorops.com/',
                  repository: str = klaxon.__repository__):
         """Creates a VictorOps API wrapper.
 
@@ -122,7 +122,7 @@ class VictorOps:
         requests.HTTPError
             if the HTTP request failed
         """
-        resp = self._session.get(urljoin(self._api_base_url, 'v1/incidents'))
+        resp = self._session.get(urljoin(self._api_base_url, 'api-public/v1/incidents'))
         resp.raise_for_status()
         j = resp.json()
         for i in j['incidents']:
@@ -138,7 +138,7 @@ class VictorOps:
                            teams=set(i['pagedTeams']))
 
     def fetch_oncallers(self) -> Iterable[str]:
-        resp = self._session.get(urljoin(self._api_base_url, 'v1/oncall/current'))
+        resp = self._session.get(urljoin(self._api_base_url, 'api-public/v1/oncall/current'))
         resp.raise_for_status()
         j = resp.json()
         for t in j['teamsOnCall']:
@@ -160,7 +160,8 @@ class VictorOps:
             reroutes=[dict(incidentNumber=i.id,
                            targets=[dict(type="EscalationPolicy", slug=escalate_to_policy)])
                       for i in incidents])
-        resp = self._session.post(urljoin(self._api_base_url, "v1/incidents/reroute"), json=payload)
+        resp = self._session.post(urljoin(self._api_base_url, "api-public/v1/incidents/reroute"),
+                                  json=payload)
         resp.raise_for_status()
         j = resp.json()
         return j
@@ -177,7 +178,8 @@ class VictorOps:
 
     def check_policy_pages_immediately(self, policy_slug: Iterable[str]):
         '''Check that the given policy has at least one rotation_group with timeout 0.'''
-        resp = self._session.get(urljoin(self._api_base_url, f"v1/policies/{policy_slug}"))
+        resp = self._session.get(
+            urljoin(self._api_base_url, f"api-public/v1/policies/{policy_slug}"))
         resp.raise_for_status()
         j = resp.json()
         steps = j['steps']

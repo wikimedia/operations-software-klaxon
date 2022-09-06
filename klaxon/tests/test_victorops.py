@@ -12,7 +12,7 @@ API_ID = 'api_magic_id_1234'
 API_KEY = 'secret_key_a1b2c3'
 ADMIN_EMAIL = 'klaxon@administrator.org'
 CREATE_URL = 'https://test.victorops/abcdef012345/createurl'
-API_BASE_URL = 'https://test.victorops/api-public/'
+API_BASE_URL = 'https://test.victorops/'
 TEAM_IDS = 'team-sre'
 
 
@@ -140,7 +140,7 @@ class TestVictorOps(unittest.TestCase):
                      paged_users=set(),
                      id='61'),
         ]
-        responses.add(responses.GET, API_BASE_URL + 'v1/incidents',
+        responses.add(responses.GET, API_BASE_URL + 'api-public/v1/incidents',
                       json=resp_payload)
 
         reply = list(self.v.fetch_incidents())
@@ -162,7 +162,7 @@ class TestVictorOps(unittest.TestCase):
                 'targets': [{'type': 'EscalationPolicy', 'slug': 'pol-batphone'}],
             }]
         }
-        responses.add(responses.POST, API_BASE_URL + 'v1/incidents/reroute', json={},
+        responses.add(responses.POST, API_BASE_URL + 'api-public/v1/incidents/reroute', json={},
                       match=[responses.json_params_matcher(expected_payload)])
         self.v.escalate_unpaged_incidents('pol-batphone')
 
@@ -170,7 +170,7 @@ class TestVictorOps(unittest.TestCase):
 
     @responses.activate
     def test_fetch_incidents_httperror(self):
-        responses.add(responses.GET, API_BASE_URL + 'v1/incidents',
+        responses.add(responses.GET, API_BASE_URL + 'api-public/v1/incidents',
                       body='no healthy upstream', status=503)
         with self.assertRaises(requests.exceptions.HTTPError):
             list(self.v.fetch_incidents())
@@ -189,7 +189,7 @@ class TestVictorOps(unittest.TestCase):
             }]
         }
         expected = ['cdanis', 'rzl']
-        responses.add(responses.GET, API_BASE_URL + 'v1/oncall/current',
+        responses.add(responses.GET, API_BASE_URL + 'api-public/v1/oncall/current',
                       json=resp_payload)
         reply = list(self.v.fetch_oncallers())
 
@@ -222,7 +222,7 @@ class TestVictorOps(unittest.TestCase):
                 }]
         }
         expected = ['cdanis', 'rzl']
-        responses.add(responses.GET, API_BASE_URL + 'v1/oncall/current',
+        responses.add(responses.GET, API_BASE_URL + 'api-public/v1/oncall/current',
                       json=resp_payload)
 
         self.v.esc_policy_ids = set(['pol-xyzzyblah'])
@@ -237,7 +237,7 @@ class TestVictorOps(unittest.TestCase):
 
     @responses.activate
     def test_fetch_oncallers_httperror(self):
-        responses.add(responses.GET, API_BASE_URL + 'v1/oncall/current',
+        responses.add(responses.GET, API_BASE_URL + 'api-public/v1/oncall/current',
                       body='no healthy upstream', status=503)
         with self.assertRaises(requests.exceptions.HTTPError):
             list(self.v.fetch_oncallers())
