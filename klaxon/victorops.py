@@ -211,7 +211,7 @@ if __name__ == '__main__':
     p.add_argument('--team_ids_filter', default=os.environ.get('KLAXON_TEAM_IDS_FILTER'))
     p.add_argument('-v', '--verbose', action='count', default=0,
                    help='Verbosity (-v, -vv, etc).')
-    subparsers = p.add_subparsers(dest='command', metavar="COMMAND")
+    subparsers = p.add_subparsers(dest='command', metavar="COMMAND", required=True)
     escalate_unpaged = subparsers.add_parser(
         'escalate_unpaged', help="Escalate incidents that haven't paged to another rotation")
     escalate_unpaged.add_argument('esc_policy_slug',
