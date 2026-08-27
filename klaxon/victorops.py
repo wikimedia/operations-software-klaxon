@@ -4,7 +4,7 @@ import dateutil.parser
 import datetime
 import logging
 from dataclasses import dataclass
-from typing import AbstractSet, Iterable, Set, Union
+from typing import AbstractSet, Iterable, Optional, Set, Union
 from urllib.parse import urljoin
 
 import requests
@@ -85,7 +85,8 @@ class VictorOps:
         self._session.headers['X-VO-Api-Id'] = api_id
         self._session.headers['X-VO-Api-Key'] = api_key
 
-    def send_page(self, summary: str, description: str) -> None:
+    def send_page(self, summary: str, description: str,
+                  create_incident_url: Optional[str] = None) -> None:
         """Creates a new paging incident in VictorOps.
 
         Parameters
@@ -94,6 +95,10 @@ class VictorOps:
                 A one-line terse title.  Appears in push notifications.
             description : str
                 Longer, free-form text.
+            create_incident_url : Optional[str]
+                Optional other REST endpoint to POST to. Defaults to
+                self_create_incident_url, but allows the use of other
+                escalations (for example the management rotation).
 
         Raises:
         -------
@@ -101,6 +106,7 @@ class VictorOps:
             if the HTTP request failed
         VictorOpsError
             if the HTTP request succeded, but the VictorOps API failed
+
         """
         payload = {
             'message_type': 'CRITICAL',
@@ -108,7 +114,8 @@ class VictorOps:
             'state_message': description,
         }
         logging.info("Sending a page: %s", payload)
-        resp = self._session.post(self._create_incident_url, json=payload)
+        resp = self._session.post(create_incident_url or self._create_incident_url,
+                                  json=payload)
         resp.raise_for_status()
         j = resp.json()
         if j['result'] != 'success':

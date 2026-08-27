@@ -3,12 +3,12 @@
 {% block content %}
 <section class="section">
     <div class="container block has-text-centered">
-        <h2 class="title is-4">Wake up an SRE</h2>
-        <p class="subtitle narrow container">If you are confident there's a widespread outage or other emergency, and that it
-            isn't known to us already, you should page us.</p>
+        <h2 class="title is-4">{{ target.button }}</h2>
+        <p class="subtitle narrow container">{{ target.subtitle }}</p>
     </div>
     <div class="container block is-max-desktop">
-        <form action="submit_page" method="POST">
+        <form action="{{ url_for('submit_page') }}" method="POST">
+            <input type="hidden" name="target" value="{{ target.slug }}">
             <div class="notification is-warning">
                 Contents of the form submission may be public. <strong>Do not</strong> enter any private data.
             </div>

@@ -46,6 +46,7 @@ CONFIG_DEFAULTS = {
     'KLAXON_VO_API_ID': None,
     'KLAXON_VO_API_KEY': None,
     'KLAXON_VO_CREATE_INCIDENT_URL': None,
+    'KLAXON_VO_MANAGERS_CREATE_INCIDENT_URL': None,
     'KLAXON_SECRET_KEY': None,
     'KLAXON_ADMIN_CONTACT_EMAIL': None,
     'KLAXON_TEAM_IDS_FILTER': None,     # A comma-separated list of team IDs, or unset.
@@ -53,6 +54,27 @@ CONFIG_DEFAULTS = {
     'KLAXON_ESC_POLICY_IDS_FILTER': None,
     'KLAXON_TCPIRCBOT_HOST': None,
     'KLAXON_TCPIRCBOT_PORT': None,
+}
+
+# Pages that are eligible to be sent with their own vops REST point
+# These are the *only* pages that can be sent.
+PAGE_TARGETS = {
+    'sre': {
+        'slug': 'sre',
+        'button': 'Wake up an SRE',
+        'subtitle': ("If you are confident there's a widespread outage or other emergency, and "
+                     "that it isn't known to us already, you should page us."),
+        'headline_prefix': 'Manual #page',
+        'url_config_key': 'KLAXON_VO_CREATE_INCIDENT_URL',
+    },
+    'sre-managers': {
+        'slug': 'sre-managers',
+        'button': 'Page sre-mgmt',
+        'subtitle': ('This pages the SRE managers, not the oncall engineer.  Use it when an '
+                     'incident needs a manager.'),
+        'headline_prefix': 'Manual #page for SRE managers',
+        'url_config_key': 'KLAXON_VO_MANAGERS_CREATE_INCIDENT_URL',
+    },
 }
 
 
@@ -140,11 +162,21 @@ def create_app():
         else:
             return get_username()
 
+    page_targets = {slug: target for slug, target in PAGE_TARGETS.items()
+                    if app.config[target['url_config_key']]}
+
+    def get_page_target(slug: str):
+        """Returns the requested page target, or raises NotFound if it isn't available here."""
+        if slug not in page_targets:
+            raise werkzeug.exceptions.NotFound
+        return page_targets[slug]
+
     @app.route('/')
     def root():
         oncallers = fetch_victorops_oncallers()
         return render_template('index.html',
-                               oncallers=oncallers)
+                               oncallers=oncallers,
+                               page_targets=page_targets)
 
     @app.route('/recent_incidents')
     def recent_incidents():
@@ -154,20 +186,24 @@ def create_app():
                                incidents=incidents)
 
     @app.route('/protected/page_form')
-    def page_form():
+    @app.route('/protected/page_form/<target>')
+    def page_form(target: str = 'sre'):
         return render_template('page_form.html', identity=get_user_identity(),
-                               email=get_cas_user_email())
+                               email=get_cas_user_email(),
+                               target=get_page_target(target))
 
     @app.route('/protected/submit_page', methods=['POST'])
     def submit_page():
         form = request.form
         # TODO: validate that required fields in the form were included.
+        target = get_page_target(form.get('target', 'sre'))
         summary = form['summary']
-        headline = f"Manual #page by {get_user_identity()}: {summary}"
+        headline = f"{target['headline_prefix']} by {get_user_identity()}: {summary}"
 
         irc_logger.info(headline)
         vo.send_page(summary=headline,
-                     description=form['description'])
+                     description=form['description'],
+                     create_incident_url=app.config[target['url_config_key']])
 
         with api_lock:
             api_incidents_cache.clear()

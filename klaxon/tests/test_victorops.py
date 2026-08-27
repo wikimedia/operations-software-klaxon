@@ -12,6 +12,7 @@ API_ID = 'api_magic_id_1234'
 API_KEY = 'secret_key_a1b2c3'
 ADMIN_EMAIL = 'klaxon@administrator.org'
 CREATE_URL = 'https://test.victorops/abcdef012345/createurl'
+MANAGERS_CREATE_URL = 'https://test.victorops/abcdef012345/createurl/managers'
 API_BASE_URL = 'https://test.victorops/'
 TEAM_IDS = 'team-sre'
 
@@ -36,6 +37,24 @@ class TestVictorOps(unittest.TestCase):
         self.assertIn('klaxon', responses.calls[0].request.headers['User-Agent'])
         self.assertIn(ADMIN_EMAIL, responses.calls[0].request.headers['User-Agent'])
         self.assertIn(klaxon.__repository__, responses.calls[0].request.headers['User-Agent'])
+
+    @responses.activate
+    def test_send_page_to_other_url(self):
+        """Passing create_incident_url pages a different escalation policy."""
+        expected_payload = {
+            'message_type': 'CRITICAL',
+            'entity_display_name': 'Klaxonbot',
+            'state_message': 'Please wake up a manager',
+        }
+        responses.add(responses.POST, MANAGERS_CREATE_URL,
+                      json={'result': 'success', 'entity_id': 'asdf'},
+                      match=[responses.json_params_matcher(expected_payload)])
+
+        self.v.send_page(summary="Klaxonbot", description="Please wake up a manager",
+                         create_incident_url=MANAGERS_CREATE_URL)
+
+        self.assertEqual(1, len(responses.calls))
+        self.assertEqual(MANAGERS_CREATE_URL, responses.calls[0].request.url)
 
     @responses.activate
     def test_send_page_failure(self):

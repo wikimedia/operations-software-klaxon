@@ -80,6 +80,20 @@
             as it can wake up engineers who are asleep.
         </p>
         </div>
+    {% if 'sre-managers' in page_targets %}
+    <div class="container block">
+        <div class="control">
+            <a class="button is-primary is-danger is-light" href="/protected/page_form/sre-managers">
+                <strong>{{ page_targets['sre-managers'].button }}</strong>
+            </a>
+        </div>
+        <p class="help narrow container">
+            This pages the <strong>SRE manager</strong> rotation. Use it if an
+            incident needs a manager's involvement. The same
+            <a href="https://wikitech-static.wikimedia.org/wiki/Klaxon#Who_is_allowed_to_send_pages_using_Klaxon?">restrictions on who may send pages</a> apply.
+        </p>
+    </div>
+    {% endif %}
     <div class="container block">
         <div class="control">
             <a class="button is-info" href="https://web.libera.chat/#wikimedia-sre">
