@@ -97,7 +97,7 @@ class VictorOps:
                 Longer, free-form text.
             create_incident_url : Optional[str]
                 Optional other REST endpoint to POST to. Defaults to
-                self_create_incident_url, but allows the use of other
+                self._create_incident_url, but allows the use of other
                 escalations (for example the management rotation).
 
         Raises:
